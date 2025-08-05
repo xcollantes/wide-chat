@@ -1,88 +1,119 @@
-/** Interacts with the page assigned in manifest.json.
- *
- * Output to console will appear in the respective browser page.   
- *
- * This content script can only manipulate the `matches` property of the
- * `content_scripts` field in the manifest.json.
- *
- * Insert objects into the DOM using HTML `document` object:
- * `let insertPoint = document.querySelector("#ppd");`
- *
- * If you need data from other scripts, use the `chrome.runtime.onMessage`.
- */
+let currentSettings = { enabled: true, width: 95 };
+let styleElement = null;
 
-const graphId = "price-tracker"
-let insertPoint = document.querySelector("#ppd")
-
-if (insertPoint) {
-  insertGraph(insertPoint)
+function createWidenStyle(width) {
+  return `
+    /* Target all max-width containers */
+    [class*="max-w-"]:not([class*="max-w-xs"]):not([class*="max-w-sm"]):not([class*="max-w-none"]):not([class*="max-w-full"]) {
+      max-width: ${width}% !important;
+    }
+    
+    /* Target prose containers (ChatGPT output) */
+    .prose {
+      max-width: ${width}% !important;
+    }
+    
+    /* Target w-fit containers */
+    .w-fit {
+      width: ${width}% !important;
+      max-width: ${width}% !important;
+    }
+    
+    /* Target thread content width CSS variable */
+    .min-w-\\(--thread-content-width\\) {
+      min-width: ${width}% !important;
+    }
+  `;
 }
 
-/**
- * Waits for the message from `ToolbarButton.js` to scroll to an element if
- * it exists, return string if not found.
- */
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request === "show_graph") {
-    const graphElement = document.getElementById(graphId)
-    if (graphElement) {
-      document.getElementById(graphId).scrollIntoView({ behavior: "smooth" })
-      flashBorder(graphId)
-    } else {
-      sendResponse("no_graph_found")
+function widenChatArea() {
+  if (!currentSettings.enabled) {
+    if (styleElement) {
+      styleElement.remove();
+      styleElement = null;
     }
-    return true // Always return something
+    return;
   }
-})
 
-/** Flash a border around the graph for visibility. */
-function flashBorder(graphId) {
-  const color = "#2e7d32"
-  let step = 5
+  if (!styleElement) {
+    styleElement = document.createElement('style');
+    styleElement.id = 'wide-chat-styles';
+    document.head.appendChild(styleElement);
+  }
+  
+  styleElement.textContent = createWidenStyle(currentSettings.width);
+}
 
-  let max = 80
-  let min = 0
-  let exposure = min + step
+async function loadSettings() {
+  try {
+    const result = await chrome.storage.sync.get({
+      enabled: true,
+      width: 95
+    });
+    currentSettings = result;
+  } catch (error) {
+    console.log('Could not load settings:', error);
+  }
+}
 
-  const flashingLights = setInterval(function () {
-    if (exposure >= max || exposure <= min) {
-      step *= -1
+function observeAndWiden() {
+  widenChatArea();
+  
+  const observer = new MutationObserver((mutations) => {
+    let shouldReapply = false;
+    
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            const hasMaxWidth = node.classList && Array.from(node.classList).some(cls => cls.includes('max-w-'));
+            const hasMaxWidthChild = node.querySelector && node.querySelector('[class*="max-w-"]');
+            const isMainElement = node.tagName === 'MAIN';
+            
+            if (hasMaxWidth || hasMaxWidthChild || isMainElement) {
+              shouldReapply = true;
+            }
+          }
+        });
+      }
+    });
+    
+    if (shouldReapply && currentSettings.enabled) {
+      setTimeout(widenChatArea, 100);
     }
-    exposure += step
-    document.getElementById(
-      graphId
-    ).style.boxShadow = `0 0 ${exposure}px ${color}`
-  }, 50)
-
-  document.addEventListener("click", () => {
-    clearInterval(flashingLights)
-    document.getElementById(graphId).style.boxShadow = "0 0 0"
-  })
+  });
+  
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+  
+  const intervalCheck = setInterval(() => {
+    if (currentSettings.enabled) {
+      widenChatArea();
+    }
+  }, 2000);
+  
+  window.addEventListener('beforeunload', () => {
+    clearInterval(intervalCheck);
+  });
 }
 
-function insertGraph(insertPoint) {
-  chrome.runtime.sendMessage("get_url", (response) => {
-    const asin = getAsinFromUrl(response.tab.url)
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'updateSettings') {
+    currentSettings = message.settings;
+    widenChatArea();
+    sendResponse({ success: true });
+  }
+});
 
-    const graphLink = `https://charts.camelcamelcamel.com/us/${asin}/amazon-new-used.png?legend=1&w=855&h=513&ilt=1&tp=all&fo=0&lang=en`
-    const camelLink = `https://camelcamelcamel.com/product/${asin}`
-    const altText = `Price graph found at ${camelLink}`
-
-    const html = `<a href='${graphLink}'><img src='${graphLink}' id='${graphId}' alt='${altText}' maxWidth="80%" /></a>`
-
-    // TODO: See if using setAttribute is beneficial.
-    // const graph = document.createElement("img");
-    // graph.setAttribute("src", g)
-    // graph.setAttribute("alt", g)
-    // graph.setAttribute("width", "50%")
-    // insertPoint.insertAdjacentElement("afterend", graph);
-    insertPoint.insertAdjacentHTML("afterend", html)
-  })
+async function init() {
+  await loadSettings();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', observeAndWiden);
+  } else {
+    observeAndWiden();
+  }
 }
 
-/**
- * Extract the ASIN code from the Amazon.com link.
- */
-function getAsinFromUrl(url) {
-  return url.match(/\/dp\/([\d\w]+)[\?\&\/]?/)[1]
-}
+init();
