@@ -1,7 +1,204 @@
 <!DOCTYPE html>
 <html>
-  <body>
-    <img src="icons/dollar-32x32.png" alt="logo" />
-    <div id="rootExtension"></div>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 300px;
+      padding: 16px;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      background: #ffffff;
+    }
+    
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .logo {
+      width: 32px;
+      height: 32px;
+    }
+    
+    .title {
+      font-weight: 600;
+      font-size: 16px;
+      color: #111827;
+    }
+    
+    .version {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .description {
+      color: #4b5563;
+      margin-bottom: 20px;
+      line-height: 1.4;
+    }
+    
+    .section {
+      margin-bottom: 16px;
+    }
+    
+    .section-title {
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: #374151;
+    }
+    
+    .width-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .width-slider {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: #e5e7eb;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    
+    .width-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+    }
+    
+    .width-value {
+      min-width: 40px;
+      text-align: right;
+      font-weight: 500;
+      color: #374151;
+    }
+    
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: #e5e7eb;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .toggle.active {
+      background: #3b82f6;
+    }
+    
+    .toggle-knob {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    
+    .toggle.active .toggle-knob {
+      transform: translateX(20px);
+    }
+    
+    .status {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      text-align: center;
+    }
+    
+    .status.active {
+      background: #dcfce7;
+      color: #166534;
+    }
+    
+    .status.inactive {
+      background: #fef2f2;
+      color: #991b1b;
+    }
+    
+    .supported-sites {
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.3;
+    }
+    
+    .site-list {
+      margin-top: 4px;
+      padding-left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="icons/32x32.png" alt="Wide AI Chats" class="logo" />
+    <div>
+      <div class="title">Wide AI Chats</div>
+      <div class="version">v1.0.0</div>
+    </div>
+  </div>
+  
+  <div class="description">
+    Widens the chat output area on AI chat websites for better readability
+  </div>
+  
+  <div class="section">
+    <div class="section-title">Extension Status</div>
+    <div id="status" class="status active">Active on this site</div>
+  </div>
+  
+  <div class="section">
+    <div class="section-title">Width Settings</div>
+    
+    <div class="toggle-container">
+      <span>Enable widening</span>
+      <div id="enableToggle" class="toggle active">
+        <div class="toggle-knob"></div>
+      </div>
+    </div>
+    
+    <div class="width-control">
+      <span>Width:</span>
+      <input type="range" id="widthSlider" class="width-slider" min="60" max="98" value="95" step="1">
+      <span id="widthValue" class="width-value">95%</span>
+    </div>
+  </div>
+  
+  <div class="section">
+    <div class="section-title">Supported Sites</div>
+    <div class="supported-sites">
+      <div class="site-list">
+        • ChatGPT<br>
+        • Claude AI<br>
+        • Perplexity<br>
+        • Groq<br>
+        • DeepSeek
+      </div>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
 </html>
