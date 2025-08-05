@@ -3,25 +3,14 @@ let styleElement = null;
 
 function createWidenStyle(width) {
   return `
-    /* Target all max-width containers */
-    [class*="max-w-"]:not([class*="max-w-xs"]):not([class*="max-w-sm"]):not([class*="max-w-none"]):not([class*="max-w-full"]) {
-      max-width: ${width}% !important;
-    }
-    
-    /* Target prose containers (ChatGPT output) */
-    .prose {
-      max-width: ${width}% !important;
-    }
-    
-    /* Target w-fit containers */
-    .w-fit {
+    /* Target ChatGPT's main container with fixed width */
+    .w-\\[900px\\] {
       width: ${width}% !important;
-      max-width: ${width}% !important;
     }
     
-    /* Target thread content width CSS variable */
-    .min-w-\\(--thread-content-width\\) {
-      min-width: ${width}% !important;
+    /* Target any similar fixed width containers */
+    [class*="w-["][class*="px]"] {
+      width: ${width}% !important;
     }
   `;
 }
